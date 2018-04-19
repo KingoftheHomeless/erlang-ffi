@@ -6,7 +6,7 @@
 -- Copyright   : (c) Eric Sessoms, 2008
 --               (c) Artúr Poór, 2015
 -- License     : GPL3
--- 
+--
 -- Maintainer  : gombocarti@gmail.com
 -- Stability   : experimental
 -- Portability : portable
@@ -73,15 +73,15 @@ instance Erlang ErlType where
     fromErlang = Prelude.id
 
 instance Erlang Int where
-    toErlang   x             
-       | abs x <= 0x7FFFFFFF = ErlInt x        
+    toErlang   x
+       | abs x <= 0x7FFFFFFF = ErlInt x
        | otherwise           = ErlBigInt (fromIntegral x) -- Haskell Int (might) use 64 bits whether erlang's small Int use only 32 bit
 
     fromErlang (ErlInt x)    = x
     fromErlang (ErlBigInt x) = fromIntegral x
 
 instance Erlang Double where
-    toErlang   x            = ErlFloat x 
+    toErlang   x            = ErlFloat x
     fromErlang (ErlFloat x) = x
 
 instance Erlang Float where
@@ -139,7 +139,6 @@ instance Binary ErlType where
     put = undefined
     get = getErl
 
-      
 putErl :: ErlType -> Builder
 putErl (ErlInt val)
     | 0 <= val && val < 256 = tag 'a' <> putC val
@@ -155,12 +154,12 @@ putErl (ErlTuple val)
 putErl ErlNull              = tag 'j'
 putErl (ErlString val)      = tag 'k' <> putn (length val) <> putA val
 putErl (ErlList val)        = tag 'l' <> putN (length val) <> val' <> putErl ErlNull
-    where val' = mconcat . map putErl $ val  
+    where val' = mconcat . map putErl $ val
 putErl (ErlBinary val)      = tag 'm' <> putN (length val) <> (lazyByteString . B.pack) val
 
-putErl (ErlBigInt x) 
-       | len > 255      = tag 'o' <> putN len <> byteString val 
-       | otherwise      = tag 'n' <> putC len <> byteString val 
+putErl (ErlBigInt x)
+       | len > 255      = tag 'o' <> putN len <> byteString val
+       | otherwise      = tag 'n' <> putC len <> byteString val
    where
      val = integerToBytes x
      len = Byte.length val -1
@@ -188,16 +187,16 @@ getErl = do
       'a' -> liftM ErlInt getC
 
       'b' -> do x <- getN
-                
-                let valFrom32  
-                      | x > 0x7FFFFFFF = x .|. complement 0xFFFFFFFF  
+
+                let valFrom32
+                      | x > 0x7FFFFFFF = x .|. complement 0xFFFFFFFF
                       | otherwise      = x
 
                 return (ErlInt valFrom32)
-      'c' -> do parsed  <- reads . BB.unpack <$> getByteString 31  
+      'c' -> do parsed  <- reads . BB.unpack <$> getByteString 31
                 case parsed of
                   [(x,remains)]
-                    | all (=='\NUL') remains -> return $ ErlFloat x 
+                    | all (=='\NUL') remains -> return $ ErlFloat x
                   _                          -> fail $ "could not parse float representation: "++show parsed
 
       'd' -> getn >>= liftM ErlAtom . getA
@@ -236,7 +235,7 @@ getErl = do
       'n' -> do  len <- getC
                  raw <- getByteString (len+1)
                  ErlBigInt <$> bytesToInteger raw
-      
+
       'o' -> do  len <- getN
                  raw <- getByteString (len+1)
                  ErlBigInt <$> bytesToInteger raw
@@ -262,11 +261,11 @@ bytesToInteger bts = case Byte.unpack bts of
 
 
 integerToBytes :: Integer -> ByteString
-integerToBytes int = Byte.pack 
-                   . fmap (fromIntegral.snd) 
-                   . takeWhile not_zero 
+integerToBytes int = Byte.pack
+                   . fmap (fromIntegral.snd)
+                   . takeWhile not_zero
                    $ iterate ((`divMod`256).fst) (abs int,sigByte)
-  
+
   where
     not_zero (a,b)    = a + b /= 0
     sigByte | int > 0   = 0
@@ -274,7 +273,7 @@ integerToBytes int = Byte.pack
 
 
 
-tag :: Char -> Builder             
+tag :: Char -> Builder
 tag = charUtf8
 
 putC :: Integral a => a -> Builder
@@ -289,7 +288,7 @@ putN = word32BE . fromIntegral
 puta :: [Word8] -> Builder
 puta = lazyByteString . B.pack
 
-putA :: String -> Builder       
+putA :: String -> Builder
 putA = stringUtf8
 
 getC :: Get Int

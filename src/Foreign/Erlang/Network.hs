@@ -3,7 +3,7 @@
 -- Copyright   : (c) Eric Sessoms, 2008
 --               (c) Artúr Poór, 2015
 -- License     : GPL3
--- 
+--
 -- Maintainer  : gombocarti@gmail.com
 -- Stability   : experimental
 -- Portability : portable
@@ -14,7 +14,7 @@ module Foreign.Erlang.Network (
     epmdGetNames
   , epmdGetPort
   , epmdGetPortR4
-  
+
   , ErlRecv
   , ErlSend
   -- ** Representation of Erlang nodes
@@ -34,7 +34,7 @@ import Data.Hash.MD5            (md5i, Str(..))
 import Data.List                (unfoldr)
 import Data.Word
 import Foreign.Erlang.Types
-import Network                  
+import Network
 import System.Directory         (getHomeDirectory)
 import System.FilePath          ((</>))
 import System.IO
@@ -61,6 +61,7 @@ flagDistMonitorName    =  0x20
 flagHiddenAtomCache    =  0x40
 flagNewFunTags         =  0x80
 flagExtendedPidsPorts  = 0x100
+flagUtf8Atoms          = 0x10000
 
 flagExtendedReferences :: Word16
 flagExtendedPidsPorts  :: Word16
@@ -102,7 +103,7 @@ recvMessage hdrlen inf = (liftM (unpack hdrlen) $ inf hdrlen) >>= inf
 
 type ErlSend = (Maybe ErlType, Maybe ErlType) -> IO ()
 type ErlRecv = IO (Maybe ErlType, Maybe ErlType)
-      
+
 erlSend :: (Builder -> IO ()) -> ErlSend
 erlSend send (Nothing, _)    = send . lazyByteString $ B.empty
 erlSend send (Just ctl, msg) = send $
@@ -110,10 +111,10 @@ erlSend send (Just ctl, msg) = send $
     putMsg ctl <>
     maybe mempty putMsg msg
   where
-    putMsg msg = 
+    putMsg msg =
       putC erlangProtocolVersion <>
       putErl msg
-      
+
 erlRecv :: IO B.ByteString -> ErlRecv
 erlRecv recv = do
     bytes <- recv
@@ -141,8 +142,8 @@ erlRecv recv = do
 -- | Name of an Erlang node.
 type Name = String
 
--- | Representation of an Erlang node on the network.     
-data Node 
+-- | Representation of an Erlang node on the network.
+data Node
     = Short Name         -- ^ Local Erlang node.
     | Long Name HostName -- ^ Remote Erlang node.
       deriving (Eq,Show)
@@ -151,7 +152,7 @@ instance Erlang Node where
     toErlang (Short name)   = ErlString name
     toErlang (Long name ip) = ErlString name
     fromErlang = undefined
-          
+
 erlConnect :: String -> Node -> IO (ErlSend, ErlRecv)
 erlConnect self node = withSocketsDo $ do
     port <- epmdGetPort node
@@ -167,7 +168,7 @@ erlConnect self node = withSocketsDo $ do
                    Short _    -> epmdLocal
                    Long  _ ip -> ip
 
-                     
+
 handshake :: (Builder -> IO ()) -> IO B.ByteString -> String -> IO ()
 handshake out inf self = do
     cookie <- getUserCookie
@@ -183,7 +184,7 @@ handshake out inf self = do
     sendName = out $
         tag 'n' <>
         putn erlangVersion <>
-        putN (flagExtendedReferences .|. flagExtendedPidsPorts) <>
+        putN (flagExtendedReferences .|. flagExtendedPidsPorts .|. flagUtf8Atoms) <>
         putA self
 
     recvStatus = do
@@ -194,7 +195,7 @@ handshake out inf self = do
         msg <- inf
         return . flip runGet msg $ do
             _tag <- getC
-            _version <- getn 
+            _version <- getn
             _flags <- getN
             challenge <- getWord32be
             return challenge
@@ -212,7 +213,7 @@ handshake out inf self = do
 
 epmdLocal :: HostName
 epmdLocal = "127.0.0.1"
-            
+
 epmdPort :: PortID
 --epmdPort = Service "epmd"
 epmdPort = PortNumber 4369
