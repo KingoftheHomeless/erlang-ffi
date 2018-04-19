@@ -60,8 +60,8 @@ flagFunTags            =  0x10
 flagDistMonitorName    =  0x20
 flagHiddenAtomCache    =  0x40
 flagNewFunTags         =  0x80
-flagExtendedPidsPorts  = 0x100
-flagUtf8Atoms          = 0x10000
+flagExtendedPidsPorts  =  0x100
+flagUtf8Atoms          =  0x10000
 
 flagExtendedReferences :: Word16
 flagExtendedPidsPorts  :: Word16
