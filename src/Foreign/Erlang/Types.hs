@@ -37,6 +37,7 @@ import Data.Binary.Get
 import Data.Char          (chr, ord, isPrint)
 import qualified Data.ByteString.Lazy       as B
 import qualified Data.ByteString.Lazy.Char8 as C
+import qualified Data.ByteString.Lazy.UTF8  as UTF
 import qualified Data.ByteString.Char8      as BB
 import Data.ByteString.Lazy.Builder
 
@@ -201,8 +202,8 @@ getErl = do
 
       'd' -> getn >>= liftM ErlAtom . getA
 
-      'v' -> getn >>= liftM ErlAtom . getA
-      'w' -> getC >>= liftM ErlAtom . getA
+      'v' -> getn >>= liftM ErlAtom . getUTF
+      'w' -> getC >>= liftM ErlAtom . getUTF
 
       'e' -> do
         node <- getErl
@@ -310,3 +311,6 @@ geta = liftM B.unpack . getLazyByteString . fromIntegral
 
 getA :: Int -> Get String
 getA = liftM C.unpack . getLazyByteString . fromIntegral
+
+getUTF :: Int -> Get String
+getUTF = liftM UTF.toString . getLazyByteString . fromIntegral
