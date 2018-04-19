@@ -37,8 +37,9 @@ import Data.Binary.Get
 import Data.Char          (chr, ord, isPrint)
 import qualified Data.ByteString.Lazy       as B
 import qualified Data.ByteString.Lazy.Char8 as C
-import qualified Data.ByteString.Lazy.UTF8  as UTF
+import qualified Data.ByteString.Lazy.UTF8  as UTFL
 import qualified Data.ByteString.Char8      as BB
+import qualified Data.ByteString.UTF8       as UTFS
 import Data.ByteString.Lazy.Builder
 
 import qualified Data.ByteString            as Byte
@@ -146,7 +147,7 @@ putErl (ErlInt val)
     | otherwise             = tag 'b' <> putN val
 
 putErl (ErlFloat val)       = tag 'c' <> byteString  (BB.pack . take 31 $ show val ++ repeat '\NUL')
-putErl (ErlAtom val)        = tag 'v' <> putn (length val) <> putA val
+putErl (ErlAtom val)        = let bs = UTFS.fromString val in tag 'v' <> putn (BB.length bs) <> (byteString bs)
 putErl (ErlTuple val)
     | len < 256             = tag 'h' <> putC len <> val'
     | otherwise             = tag 'i' <> putN len <> val'
@@ -313,4 +314,4 @@ getA :: Int -> Get String
 getA = liftM C.unpack . getLazyByteString . fromIntegral
 
 getUTF :: Int -> Get String
-getUTF = liftM UTF.toString . getLazyByteString . fromIntegral
+getUTF = liftM UTFL.toString . getLazyByteString . fromIntegral
