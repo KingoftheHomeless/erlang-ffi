@@ -63,8 +63,9 @@ flagNewFunTags         =  0x80
 flagExtendedPidsPorts  =  0x100
 flagUtf8Atoms          =  0x10000
 
-flagExtendedReferences :: Word16
-flagExtendedPidsPorts  :: Word16
+flagUtf8Atoms          :: Word32
+flagExtendedReferences :: Word32
+flagExtendedPidsPorts  :: Word32
 
 getUserCookie :: IO String
 getUserCookie = do

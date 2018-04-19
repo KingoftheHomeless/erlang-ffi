@@ -145,7 +145,7 @@ putErl (ErlInt val)
     | otherwise             = tag 'b' <> putN val
 
 putErl (ErlFloat val)       = tag 'c' <> byteString  (BB.pack . take 31 $ show val ++ repeat '\NUL')
-putErl (ErlAtom val)        = tag 'd' <> putn (length val) <> putA val
+putErl (ErlAtom val)        = tag 'v' <> putn (length val) <> putA val
 putErl (ErlTuple val)
     | len < 256             = tag 'h' <> putC len <> val'
     | otherwise             = tag 'i' <> putN len <> val'
@@ -200,6 +200,10 @@ getErl = do
                   _                          -> fail $ "could not parse float representation: "++show parsed
 
       'd' -> getn >>= liftM ErlAtom . getA
+
+      'v' -> getn >>= liftM ErlAtom . getA
+      'w' -> getC >>= liftM ErlAtom . getA
+
       'e' -> do
         node <- getErl
         id <- getN
@@ -230,6 +234,7 @@ getErl = do
         list <- liftM ErlList $ forM [1..len] (const getErl)
         null <- getErl
         assert (null == ErlNull) $ return list
+
       'm' -> getN >>= liftM ErlBinary . geta
 
       'n' -> do  len <- getC
